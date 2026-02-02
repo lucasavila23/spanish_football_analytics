@@ -14,6 +14,8 @@ The goal is to build a high-performance predictive analytics engine for Spanish 
 
 By merging these datasets into a normalized PostgreSQL warehouse, we aim to train predictive models that understand *context*—not just who scored, but who created the play and how tactical formations influence match outcomes.
 
+
+
 ## Architecture
 The system follows a modern Data Warehousing architecture:
 
@@ -33,19 +35,16 @@ The database consists of three core tables designed for granular analysis:
 ## Tech Stack
 * **Language:** Python 3.13
 * **Database:** PostgreSQL 15+
-* **Libraries:** `soccerdata`, `pandas`, `psycopg2`, `BeautifulSoup`
+* **Libraries:** `soccerdata`, `pandas`, `psycopg2`, `SQLAlchemy`
 * **Environment:** Virtual Environment (venv) on macOS/Linux
 
 ## Installation & Setup
 For detailed instructions on setting up the environment, installing dependencies, and initializing the database, please refer to the **[SETUP.md](SETUP.md)** file.
 
 **Quick Start:**
-1.  Install system dependencies (Python, PostgreSQL).
-2.  Set up the database user.
-3.  Run the verification script:
-    ```bash
-    python playground/test_db_preview.py
-    ```
+1.  Install dependencies: `pip install -r requirements.txt`
+2.  Initialize Database: `python reset_db.py`
+3.  Ingest Data: `python ingest_season.py`
 
 ## Disclaimer
 This project is for educational and research purposes only. Data scraping adheres to the `robots.txt` policies of the respective sources where applicable.

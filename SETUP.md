@@ -1,84 +1,89 @@
-# Project Setup Guide (Mac/Linux)
+# Spanish Football Database Schema (2023 Season)
 
-Follow these steps to set up the Spanish Football Analytics project environment.
+## 1. Architecture Overview
+This database combines deep analytics from **Understat** with tactical line-up data from **ESPN**.
+* **Database Engine:** PostgreSQL
+* **Primary Key Strategy:** `matches.id` is the central hub. All player data links back to this ID.
+* **Linking Logic:** Understat and ESPN data are merged based on `Date` and `Team Name` using a Python-based dictionary map.
 
-## 1. System Requirements
-* **OS:** macOS (Apple Silicon recommended) or Linux.
-* **Python:** Version **3.10** or higher (Tested on **3.13**).
-* **Database:** PostgreSQL Version **15** or higher.
+---
 
-## 2. Install System Dependencies
-Ensure you have **Homebrew** installed.
-```bash
-brew --version
-```
+## 2. Table: `matches` (The Hub)
+*Source: Understat*
+*Description: The central record for every game played.*
 
-If you don't have Python or PostgreSQL installed yet:
+| Column Name | Type | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `id` | SERIAL (PK) | Unique ID for the match | `101` |
+| `date` | DATE | Date of the match | `2023-08-12` |
+| `home_team` | TEXT | Name of the home team | `Athletic Club` |
+| `away_team` | TEXT | Name of the away team | `Real Madrid` |
+| `home_score` | INT | **Goals scored by Home Team** | `0` |
+| `away_score` | INT | **Goals scored by Away Team** | `2` |
+| `home_xg` | NUMERIC | Total Expected Goals (Home) | `0.45` |
+| `away_xg` | NUMERIC | Total Expected Goals (Away) | `1.89` |
 
-```bash
-# Install Python 3.13
-brew install python@3.13
+---
 
-# Install PostgreSQL (Latest)
-brew install postgresql
+## 3. Table: `player_stats` (The Engine)
+*Source: Understat*
+*Description: Advanced metric performance for every player in a specific match.*
 
-# Start the PostgreSQL service
-brew services start postgresql
-```
+| Column Name | Type | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `id` | SERIAL (PK) | Unique ID for this performance record | `5001` |
+| `match_id` | INT (FK) | Links to `matches.id` | `101` |
+| `team` | TEXT | Player's Team | `Real Madrid` |
+| `player_name` | TEXT | Player's Name | `Rodrygo` |
+| `minutes` | INT | Minutes played | `79` |
+| `goals` | INT | Actual goals scored | `1` |
+| `assists` | INT | Actual assists | `0` |
+| `shots` | INT | Total shots taken | `3` |
+| `xg` | NUMERIC | Expected Goals (Quality of chances) | `0.28` |
+| `xa` | NUMERIC | Expected Assists | `0.00` |
+| `xg_chain` | NUMERIC | Involvement in xG sequences | `0.85` |
+| `xg_buildup` | NUMERIC | Involvement in build-up play | `0.52` |
+| `key_passes` | INT | Passes leading to a shot | `1` |
+| `yellow_card` | INT | Yellow cards received | `0` |
+| `red_card` | INT | Red cards received | `0` |
 
-## 3. Database Initialization
+---
 
-Run these commands in your terminal to create the user and database.
+## 4. Table: `lineups` (The Tactics & Actions)
+*Source: ESPN*
+*Description: Tactical positions and defensive/action stats.*
 
-*Note: If you have already done this, you can skip to Step 4.*
+| Column Name | Type | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `id` | SERIAL (PK) | Unique ID for this lineup entry | `9001` |
+| `match_id` | INT (FK) | Links to `matches.id` | `101` |
+| `team` | TEXT | Player's Team | `Real Madrid` |
+| `player_name` | TEXT | Player's Name | `Jude Bellingham` |
+| `position` | TEXT | Tactical Position played | `Center Midfielder` |
+| `is_starter` | BOOLEAN | True if started, False if sub | `TRUE` |
+| `shots_on_target` | INT | Shots that were on goal | `1` |
+| `fouls_committed` | INT | Fouls committed by player | `2` |
+| `fouls_suffered` | INT | Fouls suffered by player | `3` |
+| `offsides` | INT | Times caught offside | `0` |
+| `saves` | INT | (GK Only) Saves made | `0` |
+| `goals_conceded` | INT | (GK/Def) Goals allowed while on pitch | `0` |
 
-```bash
-# 1. Create the database
-createdb spanish_football
+---
 
-# 2. Create the specific user for the scripts
-psql postgres -c "CREATE USER runner WITH PASSWORD 'football_password';"
+## 5. ETL Implementation Strategy
 
-# 3. Grant permissions
-psql postgres -c "GRANT ALL PRIVILEGES ON DATABASE spanish_football TO runner;"
-```
+### 1. Extract (Scraping)
+* **Understat:** Fetches aggregated season data for Matches and Players.
+* **ESPN:** Fetches match-by-match lineups.
+* **Normalization:** All column names are standardized to `snake_case` (e.g., `xG` -> `xg`) via a helper function to resolve naming conflicts between sources.
 
-## 4. Python Environment Setup
+### 2. Transform (The Bridge)
+Since sources do not share a common ID, we implement a **Dictionary Mapping Strategy**:
+1.  Insert all Matches into the database first.
+2.  Query the database to retrieve the generated `id` for every match.
+3.  Create a composite key map in Python: `{"YYYY-MM-DD|HomeTeam": match_id}`.
+4.  When processing Players and Lineups, use this map to resolve the correct foreign key (`match_id`).
 
-```bash
-# 1. Create Virtual Environment
-# We explicitly use python3.13 to match the tested environment
-python3.13 -m venv venv
-
-# 2. Activate Environment
-source venv/bin/activate
-
-# 3. Upgrade pip (good practice)
-pip install --upgrade pip
-
-# 4. Install Dependencies
-pip install -r requirements.txt
-```
-
-## 5. Verification
-
-To verify that the connections to Understat, ESPN, and your local PostgreSQL database are working correctly, run the preview script:
-
-```bash
-python playground/test_db_preview.py
-```
-
-*Expected Output:* A text preview of Match, Player, and Lineup tables without errors.
-
-## 6. Project Architecture
-
-* **Source 1:** `Understat`
-* *Metrics:* Goals, xG, xA, xGChain, xGBuildup.
-
-
-* **Source 2:** `ESPN`
-* *Metrics:* Lineups, Positions, Fouls, Cards, Saves.
-
-
-* **Database:** PostgreSQL
-* **Core Libraries:** `soccerdata`, `pandas`, `psycopg2`
+### 3. Load (Insertion)
+* **Batch Processing:** Uses `executemany` for high-performance insertion.
+* **Idempotency:** The `matches` table uses `ON CONFLICT DO NOTHING` to prevent duplicates if the pipeline is re-run.
