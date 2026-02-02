@@ -11,15 +11,15 @@ def parse_espn_date(game_str):
     except:
         return None
 
-print(f"🚀 STARTING SUPER-STATS PREVIEW for {LEAGUE} {SEASON}...")
+print(f" STARTING SUPER-STATS PREVIEW for {LEAGUE} {SEASON}...")
 
 # 1. Initialize Scrapers
-print("⏳ Loading Scrapers...")
+print(" Loading Scrapers...")
 understat = sd.Understat(leagues=LEAGUE, seasons=SEASON)
 espn = sd.ESPN(leagues=LEAGUE, seasons=SEASON)
 
 # 2. Fetch Understat Data
-print("📥 Fetching Advanced Match & Player Stats...")
+print(" Fetching Advanced Match & Player Stats...")
 matches_df = understat.read_team_match_stats().reset_index()
 players_df = understat.read_player_match_stats().reset_index()
 
@@ -29,7 +29,7 @@ match_row = matches_df[matches_df['game_id'] == test_game_id].iloc[0]
 game_players = players_df[players_df['game_id'] == test_game_id]
 
 # 3. Fetch ESPN Data
-print("📥 Fetching Lineups & Action Stats...")
+print(" Fetching Lineups & Action Stats...")
 lineups_df = espn.read_lineup().reset_index()
 lineups_df['date_str'] = lineups_df['game'].apply(parse_espn_date)
 
@@ -45,10 +45,10 @@ game_lineups = lineups_df[
 
 # --- 5. VISUALIZE THE SUPER-TABLES ---
 print("\n" + "="*60)
-print("📊 PREVIEW: THE NEW 'SUPER' DATABASE STRUCTURE")
+print(" PREVIEW: THE NEW 'SUPER' DATABASE STRUCTURE")
 print("="*60)
 
-print(f"\n1️⃣  TABLE: matches (Separate Scores)")
+print(f"\n 1  TABLE: matches (Separate Scores)")
 print("-" * 50)
 print(f"Date:       {match_date_str}")
 print(f"Home Team:  {home_team}")
@@ -58,13 +58,13 @@ print(f"Away Score: {match_row['away_goals']}  <-- (Column: away_score)")
 print(f"Home xG:    {match_row['home_xg']}")
 print(f"Away xG:    {match_row['away_xg']}")
 
-print(f"\n2️⃣  TABLE: player_stats (Advanced Metrics)")
+print(f"\n 2  TABLE: player_stats (Advanced Metrics)")
 print("-" * 50)
 # Showing 'xg_chain' and 'xg_buildup'
 stat_cols = ['player', 'xg', 'xg_chain', 'xg_buildup', 'shots', 'key_passes']
 print(game_players[stat_cols].head(5).to_string(index=False))
 
-print(f"\n3️⃣  TABLE: lineups (Action Stats)")
+print(f"\n 3  TABLE: lineups (Action Stats)")
 print("-" * 50)
 # Showing 'shots_on_target', 'fouls', etc.
 action_cols = ['player', 'position', 'shots_on_target', 'fouls_committed', 'fouls_suffered', 'saves']
@@ -72,6 +72,6 @@ action_cols = ['player', 'position', 'shots_on_target', 'fouls_committed', 'foul
 if not game_lineups.empty:
     print(game_lineups[action_cols].head(5).to_string(index=False))
 else:
-    print("⚠️  No matching lineup found.")
+    print("  No matching lineup found.")
 
-print("\n✅ PREVIEW COMPLETE")
+print("\n PREVIEW COMPLETE")

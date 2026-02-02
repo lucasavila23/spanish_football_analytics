@@ -11,15 +11,15 @@ def parse_espn_date(game_str):
     except:
         return None
 
-print(f"🚀 STARTING LIVE DATA PREVIEW for {LEAGUE} {SEASON}...")
+print(f" STARTING LIVE DATA PREVIEW for {LEAGUE} {SEASON}...")
 
 # 1. Initialize Scrapers (Real connection)
-print("⏳ Connecting to APIs (this may take a moment)...")
+print(" Connecting to APIs (this may take a moment)...")
 understat = sd.Understat(leagues=LEAGUE, seasons=SEASON)
 espn = sd.ESPN(leagues=LEAGUE, seasons=SEASON)
 
 # 2. Fetch Match Data
-print("📥 Fetching Match Stats...")
+print(" Fetching Match Stats...")
 matches_df = understat.read_team_match_stats().reset_index()
 players_df = understat.read_player_match_stats().reset_index()
 
@@ -29,7 +29,7 @@ match_row = matches_df[matches_df['game_id'] == test_game_id].iloc[0]
 game_players = players_df[players_df['game_id'] == test_game_id]
 
 # 3. Fetch Lineup Data
-print("📥 Fetching Lineups...")
+print(" Fetching Lineups...")
 lineups_df = espn.read_lineup().reset_index()
 lineups_df['date_str'] = lineups_df['game'].apply(parse_espn_date)
 lineups_df['is_starter'] = lineups_df['position'] != 'Substitute'
@@ -46,10 +46,10 @@ game_lineups = lineups_df[
 
 # --- 5. VISUALIZE THE DATABASE ROWS ---
 print("\n" + "="*60)
-print("👀 VISUAL CHECK: HOW IT WILL LOOK IN SQL")
+print(" VISUAL CHECK: HOW IT WILL LOOK IN SQL")
 print("="*60)
 
-print(f"\n📂 TABLE: matches (Note: Scores are separate columns)")
+print(f"\n TABLE: matches (Note: Scores are separate columns)")
 print("-" * 50)
 print(f"Date:       {match_date_str}")
 print(f"Home Team:  {home_team}")
@@ -59,18 +59,18 @@ print(f"Away Score: {match_row['away_goals']}  <-- (Integer)")
 print(f"Home xG:    {match_row['home_xg']}")
 print(f"Away xG:    {match_row['away_xg']}")
 
-print(f"\n📂 TABLE: player_stats (Sample of 3 players)")
+print(f"\n TABLE: player_stats (Sample of 3 players)")
 print("-" * 50)
 # Showing just the columns that matter
 cols = ['team', 'player', 'minutes', 'goals', 'xg', 'shots']
 print(game_players[cols].head(3).to_string(index=False))
 
-print(f"\n📂 TABLE: lineups (Sample of 3 players)")
+print(f"\n TABLE: lineups (Sample of 3 players)")
 print("-" * 50)
 if not game_lineups.empty:
     print(game_lineups[['team', 'player', 'position', 'is_starter']].head(3).to_string(index=False))
 else:
-    print("⚠️  No matching lineup found in ESPN for this date.")
+    print("  No matching lineup found in ESPN for this date.")
 
 print("\n" + "="*60)
 print("✅ Does this structure look good to you?")
