@@ -23,6 +23,30 @@ The system follows a modern Data Warehousing architecture:
 * **Transformation:** Cleaning, normalization, and entity resolution (linking players across different sources).
 * **Storage:** A relational **PostgreSQL** database with optimized schemas for analytical querying.
 
+```mermaid
+graph TD
+    subgraph Sources
+        A[Understat] -->|Scraper| C(ingest_season.py)
+        B[ESPN] -->|Scraper| C
+    end
+
+    subgraph "Python ETL Pipeline"
+        C -->|Normalize & Link| D{Entity Resolution}
+        D -->|Batch Insert| E[(PostgreSQL Database)]
+    end
+
+    subgraph "Storage"
+        E --> F[Table: matches]
+        E --> G[Table: player_stats]
+        E --> H[Table: lineups]
+    end
+
+    subgraph "Analytics"
+        E -->|Query| I[quick_analysis.py]
+        E -->|Visualize| J[TBD]
+    end
+```
+
 ## Data Dictionary
 The database consists of three core tables designed for granular analysis:
 
