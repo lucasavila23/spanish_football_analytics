@@ -8,24 +8,33 @@
 # 3. LOAD: Inserts the processed data into the PostgreSQL relational database.
 # ==============================================================================
 
+import os                     # To read environment variables
 import soccerdata as sd       # Library for scraping football data from various sources
 import pandas as pd           # Library for data manipulation (DataFrames)
 import psycopg2               # Library for connecting to PostgreSQL database
 import numpy as np            # Math library, used here for handling NaN (empty) values
 from datetime import datetime # Library for handling date objects
+from dotenv import load_dotenv # Security: Load .env file
 
 # --- CONFIGURATION CONSTANTS ---
 # Defines which league and season we are extracting.
 LEAGUE = "ESP-La Liga"
 SEASON = "2023"
 
-# Database connection parameters (Credentials)
+# Load secrets from .env file
+load_dotenv()
+
+# Database connection parameters (Securely retrieved)
 DB_CONFIG = {
-    "dbname": "spanish_football",
-    "user": "runner",
-    "password": "football_password",
-    "host": "localhost"
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST")
 }
+
+# Safety Check
+if not DB_CONFIG["password"]:
+    raise ValueError("❌ Error: DB_PASSWORD not found. Check your .env file.")
 
 # ==============================================================================
 # HELPER FUNCTIONS

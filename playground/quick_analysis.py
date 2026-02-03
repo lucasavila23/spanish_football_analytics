@@ -1,9 +1,18 @@
 import pandas as pd
+import os
 from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
 
-# --- DATABASE CONNECTION (SQLAlchemy) ---
-# This eliminates the Pandas UserWarning
-DB_URI = "postgresql+psycopg2://runner:football_password@localhost/spanish_football"
+# --- DATABASE CONNECTION (Secure) ---
+load_dotenv()
+
+user = os.getenv("DB_USER")
+password = os.getenv("DB_PASSWORD")
+host = os.getenv("DB_HOST")
+dbname = os.getenv("DB_NAME")
+
+# Build the connection URI dynamically
+DB_URI = f"postgresql+psycopg2://{user}:{password}@{host}/{dbname}"
 engine = create_engine(DB_URI)
 
 def run_query(query_title, sql_query):

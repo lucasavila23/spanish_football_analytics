@@ -8,4 +8,4 @@ soccerdata
 numpy
 html5lib
 protobuf==3.20.0
-sqlalchemy
+sqlalchemypython-dotenv

@@ -1,15 +1,23 @@
 import psycopg2
 import os
+from dotenv import load_dotenv
 
-# Database Configuration
-DB_NAME = "spanish_football"
-DB_USER = "runner"
-DB_PASSWORD = "football_password"
-DB_HOST = "localhost"
+# Load secrets
+load_dotenv()
+
+# Database Configuration (From .env)
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
 
 def reset_database():
     print("--- STARTING DATABASE RESET ---")
     
+    if not DB_PASSWORD:
+        print("[ERROR] Could not load DB_PASSWORD from .env file.")
+        return
+
     try:
         # 1. Connect to PostgreSQL
         conn = psycopg2.connect(
