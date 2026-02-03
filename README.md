@@ -25,26 +25,32 @@ The system follows a modern Data Warehousing architecture:
 
 ```mermaid
 graph TD
+    %% 1. The Source Layer
     subgraph Sources
         A[Understat] -->|Scraper| C(ingest_season.py)
         B[ESPN] -->|Scraper| C
     end
 
-    subgraph "Python ETL Pipeline"
-        C -->|Normalize & Link| D{Entity Resolution}
-        D -->|Batch Insert| E[(PostgreSQL Database)]
+    %% 2. The Storage Layer (The Hub)
+    C -->|Batch Insert| DB[(PostgreSQL Database)]
+    
+    subgraph Schema
+        DB -.-> T1[Table: matches]
+        DB -.-> T2[Table: player_stats]
+        DB -.-> T3[Table: lineups]
     end
 
-    subgraph "Storage"
-        E --> F[Table: matches]
-        E --> G[Table: player_stats]
-        E --> H[Table: lineups]
+    %% 3. The Analytics Layer
+    subgraph "Analytics & Visualization"
+        T1 -->|Read Scores| G[quick_analysis.py]
+        T2 -->|Read xG Metrics| G
+        
+        T2 -->|Read Performance| H[Streamlit Dashboard]
+        T3 -->|Read Tactics| H
     end
-
-    subgraph "Analytics"
-        E -->|Query| I[quick_analysis.py]
-        E -->|Visualize| J[TBD]
-    end
+    
+    %% Styling for the cool cylinder
+    style DB fill:#336791,stroke:#333,stroke-width:2px,color:#fff
 ```
 
 ## Data Dictionary
