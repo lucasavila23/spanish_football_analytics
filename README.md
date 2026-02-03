@@ -45,7 +45,7 @@ graph TD
         T1 -->|Read Scores| G[quick_analysis.py]
         T2 -->|Read xG Metrics| G
         
-        T2 -->|Read Performance| H[Streamlit Dashboard]
+        T2 -->|Read Performance| H[TBD]
         T3 -->|Read Tactics| H
     end
     
