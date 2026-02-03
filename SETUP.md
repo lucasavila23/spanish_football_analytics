@@ -1,3 +1,14 @@
+I see exactly what happened. It looks like the content meant for `DB_SCHEMA.md` (the table definitions) accidentally got pasted into `SETUP.md`, overwriting your actual installation instructions.
+
+We need to **revert** `SETUP.md` to your original structure (which was correct for your Mac) but **add** the new Security/Env steps we just discussed.
+
+Here is the fixed file. It combines your original setup steps with the new `.env` configuration and the new pipeline scripts.
+
+### **File: `SETUP.md**`
+
+*(Copy this entire block and overwrite your current `SETUP.md`)*
+
+```markdown
 # Project Setup Guide (Mac/Linux)
 
 Follow these steps to set up the Spanish Football Analytics project environment.
