@@ -1,32 +1,26 @@
 # ==============================================================================
 # SPANISH FOOTBALL ANALYTICS - DATA INGESTION PIPELINE
 # ==============================================================================
-# This script performs the ETL (Extract, Transform, Load) process for the project.
-# 
-# 1. EXTRACT: Scrapes data from Understat (Metrics) and ESPN (Tactics) using 'soccerdata'.
-# 2. TRANSFORM: Normalizes column names, cleans dates, and resolves entity links.
-# 3. LOAD: Inserts the processed data into the PostgreSQL relational database.
+# This script performs the ETL (Extract, Transform, Load) process.
 # ==============================================================================
 
-import os                     # To read environment variables
-import soccerdata as sd       # Library for scraping football data from various sources
-import pandas as pd           # Library for data manipulation (DataFrames)
-import psycopg2               # Library for connecting to PostgreSQL database
-import unidecode              # Library to handle accents (ensure you pip install unidecode)
-import numpy as np            # Math library, used here for handling NaN (empty) values
-from datetime import datetime # Library for handling date objects
-from dotenv import load_dotenv # Security: Load .env file
+import os
+import soccerdata as sd
+import pandas as pd
+import psycopg2
+import unidecode
+import numpy as np
+from datetime import datetime
+from dotenv import load_dotenv
 
 # --- HELPER FUNCTION: NAME NORMALIZATION ---
 def normalize_name(name):
     """
     Standardizes team names between ESPN (Accents) and Understat (Plain text).
     """
-    # 1. Remove accents to handle generic cases (e.g., Cádiz -> Cadiz)
     if not isinstance(name, str):
         return name
         
-    # 2. Manual Corrections Dictionary for specific edge cases
     corrections = {
         "Deportivo Alavés": "Alaves",
         "Alavés": "Alaves",
@@ -38,51 +32,39 @@ def normalize_name(name):
         "Athletic Club": "Athletic Club",
         "Real Betis": "Real Betis",
         "Rayo Vallecano": "Rayo Vallecano",
-        "Girona FC": "Girona"
+        "Girona FC": "Girona",
+        "Granada CF": "Granada"
     }
-    
-    # Check manual list first, otherwise fall back to name
     return corrections.get(name, name)
 
-# --- CONFIGURATION CONSTANTS ---
+# --- CONFIGURATION ---
 LEAGUE = "ESP-La Liga"
 SEASON = "2023"
 
-# Load secrets from .env file
 load_dotenv()
 
-# Database connection parameters (Securely retrieved)
 DB_CONFIG = {
-    "dbname": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "host": os.getenv("DB_HOST")
+    "dbname": os.getenv("DB_NAME", "spanish_football"),
+    "user": os.getenv("DB_USER", "runner"),
+    "password": os.getenv("DB_PASSWORD", "football_password"),
+    "host": os.getenv("DB_HOST", "localhost")
 }
-
-if not DB_CONFIG["password"]:
-    raise ValueError("[ERROR] DB_PASSWORD not found. Check your .env file.")
 
 # ==============================================================================
 # HELPER FUNCTIONS
 # ==============================================================================
 
 def get_db_connection():
-    """Establishes a connection to the local PostgreSQL database."""
     return psycopg2.connect(**DB_CONFIG)
 
 def parse_espn_date(game_str):
-    """Parses the raw date string from ESPN."""
     try:
         return game_str.split(' ')[0]
     except:
         return None
 
 def standardize_columns(df):
-    """
-    Normalizes column names across different data sources to lowercase snake_case.
-    """
     df.columns = [c.lower() for c in df.columns]
-    
     mappings = {
         'team': ['team', 'team_title', 'team_name'],
         'player_name': ['player', 'player_name', 'name'],
@@ -95,17 +77,12 @@ def standardize_columns(df):
         'yellow_card': ['yellow_card', 'yellow_cards', 'yellow'],
         'red_card': ['red_card', 'red_cards', 'red']
     }
-
     for target, variations in mappings.items():
-        if target in df.columns:
-            continue
-            
+        if target in df.columns: continue
         for v in variations:
             if v in df.columns:
-                # print(f"   [INFO] Renaming column '{v}' -> '{target}'")
                 df.rename(columns={v: target}, inplace=True)
                 break
-    
     return df
 
 # ==============================================================================
@@ -114,13 +91,9 @@ def standardize_columns(df):
 
 def run_ingestion():
     print(f"\n--- STARTING INGESTION PIPELINE: {LEAGUE} {SEASON} ---")
-    print("=" * 60)
-
-    # ------------------------------------------------------------------
-    # STEP 1: INITIALIZE SCRAPERS AND EXTRACT DATA
-    # ------------------------------------------------------------------
-    print("[1/4] Scraping Data (This may take a moment)...")
     
+    # 1. INITIALIZE SCRAPERS
+    print("[1/4] Scraping Data...")
     understat = sd.Understat(leagues=LEAGUE, seasons=SEASON)
     espn = sd.ESPN(leagues=LEAGUE, seasons=SEASON)
 
@@ -135,13 +108,10 @@ def run_ingestion():
     espn_lineups = espn.read_lineup().reset_index()
     espn_lineups['date_str'] = espn_lineups['game'].apply(parse_espn_date)
     
-    # CRITICAL FIX: Normalize ESPN team names immediately to match Database format
     print("   -> Normalizing Team Names...")
     espn_lineups['team'] = espn_lineups['team'].apply(normalize_name)
 
-    # ------------------------------------------------------------------
-    # STEP 2: LOAD MATCHES INTO DATABASE
-    # ------------------------------------------------------------------
+    # 2. INSERT MATCHES
     print("\n[2/4] Inserting Matches...")
     conn = get_db_connection()
     cur = conn.cursor()
@@ -152,7 +122,7 @@ def run_ingestion():
     for _, row in unique_games.iterrows():
         match_tuple = (
             row['date'].strftime('%Y-%m-%d'),
-            row['home_team'], # Understat names are usually clean
+            row['home_team'],
             row['away_team'],
             int(row['home_goals']),
             int(row['away_goals']),
@@ -166,42 +136,30 @@ def run_ingestion():
         VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (date, home_team, away_team) DO NOTHING;
     """
-    
     cur.executemany(insert_match_sql, matches_to_insert)
     conn.commit()
     print(f"   [OK] Inserted/Checked {len(matches_to_insert)} matches.")
 
-    # ------------------------------------------------------------------
-    # STEP 3: CREATE ID MAPPING (The Bridge)
-    # ------------------------------------------------------------------
-    # NEW LOGIC: Map using (HomeTeam|AwayTeam) instead of Date to fix consistency issues
+    # 3. CREATE ID MAPPING
     cur.execute("SELECT id, home_team, away_team FROM matches")
     db_matches = cur.fetchall()
     
     match_map = {}
     for m in db_matches:
-        # m[0]=id, m[1]=home, m[2]=away
-        # Ensure names are normalized for the key
         h_team = normalize_name(m[1])
         a_team = normalize_name(m[2])
         key = f"{h_team}|{a_team}"
         match_map[key] = m[0]
 
-    # ------------------------------------------------------------------
-    # STEP 4: LOAD PLAYER STATS (The Engine)
-    # ------------------------------------------------------------------
+    # 4. INSERT PLAYER STATS
     print("\n[3/4] Linking & Inserting Player Stats...")
     players_to_insert = []
 
     for _, row in ud_players.iterrows():
         match_meta = unique_games[unique_games['game_id'] == row['game_id']].iloc[0]
-        
-        # New Lookup Logic
         h_key = normalize_name(match_meta['home_team'])
         a_key = normalize_name(match_meta['away_team'])
-        match_key = f"{h_key}|{a_key}"
-        
-        match_id = match_map.get(match_key)
+        match_id = match_map.get(f"{h_key}|{a_key}")
         
         if match_id:
             p_tuple = (
@@ -231,38 +189,33 @@ def run_ingestion():
     conn.commit()
     print(f"   [OK] Inserted {len(players_to_insert)} player performance records.")
 
-    # ------------------------------------------------------------------
-    # STEP 5: LOAD LINEUPS (The Tactics)
-    # ------------------------------------------------------------------
+    # 5. INSERT LINEUPS (With Suspended Match Fix)
     print("\n[4/4] Linking & Inserting Lineups...")
     lineups_to_insert = []
 
     for _, game in unique_games.iterrows():
         g_date = game['date'].strftime('%Y-%m-%d')
-        
-        # Get Normalized names for lookup
         h_team = normalize_name(game['home_team'])
         a_team = normalize_name(game['away_team'])
         
-        # Retrieve SQL ID using the robust key
         m_id = match_map.get(f"{h_team}|{a_team}")
-        
-        if not m_id:
-            print(f"   [WARNING] No Match ID found for {h_team} vs {a_team}")
-            continue
+        if not m_id: continue
 
-        # Filter ESPN Data
-        # Since we normalized espn_lineups['team'] at the start, we can match directly!
-        h_rows = espn_lineups[(espn_lineups['date_str'] == g_date) & (espn_lineups['team'] == h_team)]
-        a_rows = espn_lineups[(espn_lineups['date_str'] == g_date) & (espn_lineups['team'] == a_team)]
+        # --- FIX FOR SUSPENDED MATCH (Granada vs Athletic) ---
+        target_dates = [g_date]
+        # If it's the specific Granada/Athletic match in Dec 2023, check all 3 possible dates
+        if h_team == "Granada" and a_team == "Athletic Club" and "2023-12" in g_date:
+             # print(f"   [FIX] Applying date patch for {h_team} vs {a_team}")
+             target_dates = ["2023-12-10", "2023-12-11", "2023-12-12"]
+        # -----------------------------------------------------
+
+        # Filter ESPN Data using the list of possible dates
+        rows = espn_lineups[
+            (espn_lineups['date_str'].isin(target_dates)) & 
+            (espn_lineups['team'].isin([h_team, a_team]))
+        ]
         
-        # If lookup fails by exact date (e.g. the Granada suspended match case),
-        # we can try a fallback or just skip. 
-        # With the Name Normalization, date matching is usually reliable enough unless dates drastically differ.
-        
-        all_rows = pd.concat([h_rows, a_rows])
-        
-        for _, p in all_rows.iterrows():
+        for _, p in rows.iterrows():
             l_tuple = (
                 m_id,
                 p['team'],
@@ -287,9 +240,6 @@ def run_ingestion():
     conn.commit()
     print(f"   [OK] Inserted {len(lineups_to_insert)} tactical lineup entries.")
 
-    # ------------------------------------------------------------------
-    # CLEANUP
-    # ------------------------------------------------------------------
     cur.close()
     conn.close()
     print("\nPIPELINE COMPLETE.")

@@ -9,6 +9,6 @@ sql_query = """
     ORDER BY m.date;
 """
 
-df = run_test_query("Investigating 13 Missing Lineups", sql_query)
+df = run_test_query("Investigating Missing Lineups", sql_query)
 
 print(df.to_string(index=False))
