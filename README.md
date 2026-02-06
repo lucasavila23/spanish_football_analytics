@@ -58,7 +58,7 @@ The database consists of three core tables designed for granular analysis:
 
 | Table | Description | Key Metrics | Source |
 | :--- | :--- | :--- | :--- |
-| `matches` | The central fact table for game metadata. | Date, Score, Aggregate xG | Understat |
+| `matches` | The central fact table for game metadata. | Date, Score, Aggregate xG, season | Understat |
 | `player_stats` | Performance metrics for the "Engine". | xG, xA, xGChain, xGBuildup | Understat |
 | `lineups` | Tactical context and defensive actions. | Positions, Fouls, Saves, Cards | ESPN |
 
@@ -67,6 +67,7 @@ The database consists of three core tables designed for granular analysis:
 * **Database:** PostgreSQL 15+
 * **ETL & Cleaning:** `soccerdata`, `pandas`, `unidecode`
 * **Database Drivers:** `psycopg2`, `SQLAlchemy`
+* **Orchestration:** `argparse` (CLI)
 * **Environment:** Virtual Environment (venv) on macOS/Linux
 
 ## Installation & Setup
@@ -74,8 +75,7 @@ For detailed instructions on setting up the environment, installing dependencies
 
 **Quick Start:**
 1.  Install dependencies: `pip install -r requirements.txt`
-2.  Initialize Database: `python reset_db.py`
-3.  Ingest Data: `python ingest_season.py`
+2.  Run the Master Pipeline (Reset DB + Load 2022/2023)
 
 ## Disclaimer
 This project is for educational and research purposes only. Data scraping adheres to the `robots.txt` policies of the respective sources where applicable.

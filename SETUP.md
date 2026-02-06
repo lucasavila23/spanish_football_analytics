@@ -84,28 +84,19 @@ DB_HOST=localhost
 
 ## 6. 🚀 Running the Pipeline
 
-Now that the environment is set, follow this workflow to build the data warehouse.
+The project is now controlled by a central orchestrator script main.py. You no longer need to run reset_db.py or ingest_season.py manually.
+* Request Help:
 
-### Step 1: Initialize Schema
-
-Wipes the database and applies the correct table structure.
-
-```bash
-python reset_db.py
+``` bash
+python main.py --help
 ```
 
-### Step 2: Data Ingestion (ETL)
-
-Scrapes data from Understat/ESPN and populates the database.
-
-```bash
-python ingest_season.py
+* **Ingest Data (Add Seasons):**
+``` bash
+python main.py --seasons 2022 2023
 ```
 
-### Step 3: Analysis
-
-Run the preview queries to verify the data.
-
-```bash
-python playground/quick_analysis.py
+* **Wipe the Database:**
+``` bash
+python main.py --reset
 ```

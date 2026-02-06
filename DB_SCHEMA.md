@@ -22,6 +22,7 @@ This database combines deep analytics from **Understat** with tactical line-up d
 | `away_score` | INT | **Goals scored by Away Team** | `2` |
 | `home_xg` | NUMERIC | Total Expected Goals (Home) | `0.45` |
 | `away_xg` | NUMERIC | Total Expected Goals (Away) | `1.89` |
+| `away_xg` | INT | Season which this match took place | `2023` |
 
 ---
 

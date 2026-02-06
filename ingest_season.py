@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 # --- CONFIGURATION ---
 LEAGUE = "ESP-La Liga"
-SEASONS_TO_PROCESS = ["2023", "2022"]  # Added 2022 for your scaling test
+# Note: SEASONS_TO_PROCESS is now handled dynamically via arguments
 
 load_dotenv()
 DB_CONFIG = {
@@ -61,7 +61,6 @@ def parse_espn_date(game_str):
     try: return game_str.split(' ')[0]
     except: return None
 
-# New helper to safely convert NaN to 0
 def safe_int(val):
     if pd.isna(val) or val == "":
         return 0
@@ -71,19 +70,21 @@ def safe_int(val):
         return 0
 
 # --- MAIN ENGINE ---
-def run_ingestion():
+def run_ingestion(seasons=["2023"]):
+    seasons_to_process = seasons
+    
     total_start_time = time.time()
-    print(f"\n--- STARTING MULTI-SEASON INGESTION: {SEASONS_TO_PROCESS} ---")
+    print(f"\n--- STARTING MULTI-SEASON INGESTION: {seasons_to_process} ---")
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    for season in SEASONS_TO_PROCESS:
+    for season in seasons_to_process:
         season_start_time = time.time()
         print(f"\n>> PROCESSING SEASON: {season}")
 
         # 1. SCRAPE
-        print("   [1/4] Scraping Data (This may take time)...")
+        print("   [1/4] Scraping Data...")
         understat = sd.Understat(leagues=LEAGUE, seasons=season)
         espn = sd.ESPN(leagues=LEAGUE, seasons=season)
 
@@ -172,7 +173,6 @@ def run_ingestion():
             ]
 
             for _, p in rows.iterrows():
-                # Uses safe_int to handle NaNs/Nulls
                 lineups_to_insert.append((
                     m_id, p['team'], p['player'], p['position'], (p['position'] != 'Substitute'),
                     safe_int(p['shots_on_target']), safe_int(p['fouls_committed']),
@@ -194,4 +194,4 @@ def run_ingestion():
     print(f"\nTOTAL TIME: {time.time() - total_start_time:.2f} seconds.")
 
 if __name__ == "__main__":
-    run_ingestion()
+    run_ingestion(seasons=["2023"])
