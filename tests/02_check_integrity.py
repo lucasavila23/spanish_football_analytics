@@ -6,7 +6,7 @@ sql_query = """
     SELECT m.id, m.date, m.home_team, m.away_team
     FROM matches m
     LEFT JOIN player_stats ps ON m.id = ps.match_id
-    WHERE ps.match_id IS NULL;
+    WHERE m.season = '2023' AND ps.match_id IS NULL;
 """
 
 # 2. RUN THE TEST
