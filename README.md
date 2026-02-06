@@ -65,7 +65,8 @@ The database consists of three core tables designed for granular analysis:
 ## Tech Stack
 * **Language:** Python 3.13
 * **Database:** PostgreSQL 15+
-* **Libraries:** `soccerdata`, `pandas`, `psycopg2`, `SQLAlchemy`
+* **ETL & Cleaning:** `soccerdata`, `pandas`, `unidecode`
+* **Database Drivers:** `psycopg2`, `SQLAlchemy`
 * **Environment:** Virtual Environment (venv) on macOS/Linux
 
 ## Installation & Setup
