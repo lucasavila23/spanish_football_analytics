@@ -1,4 +1,4 @@
-from utils import run_test_query
+from modules.utils import run_test_query
 
 # 1. GET RELEVANT IDs FOR THE TARGET SEASON
 # We use JOINs to ensure we only pull stats/lineups belonging to 2023 matches.

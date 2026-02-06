@@ -1,6 +1,6 @@
 import argparse
 import pandas as pd
-from utils import run_test_query
+from modules.utils import run_test_query
 
 # ==========================================
 # TEST 1: VOLUME CHECK

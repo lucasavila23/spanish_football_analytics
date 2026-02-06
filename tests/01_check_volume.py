@@ -1,4 +1,4 @@
-from utils import run_test_query
+from modules.utils import run_test_query
 
 # 1. DEFINE THE TEST
 # We must filter EACH subquery independently because 'season' 

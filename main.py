@@ -1,8 +1,8 @@
 import argparse
 import sys
 import time
-from reset_db import reset_database
-from ingest_season import run_ingestion
+from modules.reset_db import reset_database
+from modules.ingest_season import run_ingestion
 
 # ==============================================================================
 # SPANISH FOOTBALL ANALYTICS - MASTER ORCHESTRATOR
