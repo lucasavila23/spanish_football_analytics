@@ -33,6 +33,12 @@ The "Engine Room" containing the core business logic.
         1.  **Scrape:** Fetches data from Understat and ESPN using `soccerdata`.
         2.  **Transform:** Normalizes team names, fixes missing dates, and maps player IDs.
         3.  **Load:** Inserts data into PostgreSQL (`matches`, `player_stats`, `lineups`).
+* **`news_scraper.py`**
+    * **Role:** Web Scraper (AS.com).
+    * **Logic:** Navigates to match reports ("Crónicas") and extracts the headline, subheader, and URL context.
+* **`ingest_news.py`**
+    * **Role:** News Linker.
+    * **Logic:** Matches scraped headlines to specific database matches using fuzzy name matching and date heuristics (Jornada logic).
 * **`reset_db.py`**
     * **Role:** Database Schema Management.
     * **Logic:** Drops existing tables and rebuilds the schema from scratch. Used when the schema changes or for a "Clean Slate" run.
@@ -79,6 +85,8 @@ Experimental laboratory for data analysis.
 * **`playground/`**
     * **Role:** Sandbox.
     * **Content:** Contains `.ipynb` (Jupyter Notebooks) or loose scripts for quick experiments, visualization prototyping, or testing new ideas before they move to `modules`.
+    * **`inspect_headlines.py`:** A tool to view scraped headlines and verify they look correct.
+    * **`manual_verification.py`:** A deep-dive tool to verify specific database rows against reality.
 
 ---
 

@@ -29,15 +29,18 @@ graph TD
     subgraph Sources
         A[Understat] -->|Scraper| C(ingest_season.py)
         B[ESPN] -->|Scraper| C
+        D[AS.com] -->|Scraper| E(ingest_news.py)
     end
 
     %% 2. The Storage Layer (The Hub)
     C -->|Batch Insert| DB[(PostgreSQL Database)]
+    E -->|Link Headlines| DB
     
     subgraph Schema
         DB -.-> T1[Table: matches]
         DB -.-> T2[Table: player_stats]
         DB -.-> T3[Table: lineups]
+        DB -.-> T4[Table: news_headlines]
     end
 
     %% 3. The Analytics Layer
@@ -61,11 +64,12 @@ The database consists of three core tables designed for granular analysis:
 | `matches` | The central fact table for game metadata. | Date, Score, Aggregate xG, season | Understat |
 | `player_stats` | Performance metrics for the "Engine". | xG, xA, xGChain, xGBuildup | Understat |
 | `lineups` | Tactical context and defensive actions. | Positions, Fouls, Saves, Cards | ESPN |
+| `news_headlines` | Match narratives and coverage. | Headlines, Subheaders, URLs | AS.com |
 
 ## Tech Stack
 * **Language:** Python 3.13
 * **Database:** PostgreSQL 15+
-* **ETL & Cleaning:** `soccerdata`, `pandas`, `unidecode`
+* **ETL & Cleaning:** `soccerdata`, `pandas`, `unidecode`, `beautifulsoup4`
 * **Database Drivers:** `psycopg2`, `SQLAlchemy`
 * **Orchestration:** `argparse` (CLI)
 * **Environment:** Virtual Environment (venv) on macOS/Linux

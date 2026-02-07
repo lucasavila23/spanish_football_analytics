@@ -3,12 +3,15 @@
 Follow these steps to set up the Spanish Football Analytics project environment.
 
 ## 1. System Requirements
+
 * **OS:** macOS (Apple Silicon recommended) or Linux.
 * **Python:** Version **3.10** or higher (Tested on **3.13**).
 * **Database:** PostgreSQL Version **15** or higher.
 
 ## 2. Install System Dependencies
+
 Ensure you have **Homebrew** installed.
+
 ```bash
 brew --version
 
@@ -66,13 +69,14 @@ pip install -r requirements.txt
 This project uses environment variables to keep passwords safe.
 
 1. **Create the secrets file:**
+
 ```bash
 touch .env
 ```
 
-
 2. **Add your credentials to `.env`:**
-Open the file and paste the following (matching the user you created in Step 3):
+   Open the file and paste the following (matching the user you created in Step 3):
+
 ```ini
 DB_NAME=spanish_football
 DB_USER=runner
@@ -80,23 +84,30 @@ DB_PASSWORD=football_password
 DB_HOST=localhost
 ```
 
-
-
-## 6. 🚀 Running the Pipeline
+## 6. Running the Pipeline
 
 The project is now controlled by a central orchestrator script main.py. You no longer need to run reset_db.py or ingest_season.py manually.
+
 * Request Help:
 
-``` bash
+```bash
 python main.py --help
 ```
 
 * **Ingest Data (Add Seasons):**
-``` bash
+
+```bash
 python main.py --seasons 2022 2023
 ```
 
 * **Wipe the Database:**
-``` bash
+
+```bash
 python main.py --reset
+```
+
+* **Ingest News:**
+
+```bash
+python main.py --news 2023
 ```

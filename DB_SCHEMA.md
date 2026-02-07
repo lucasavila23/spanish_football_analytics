@@ -71,15 +71,37 @@ This database combines deep analytics from **Understat** with tactical line-up d
 
 ---
 
-## 5. ETL Logic (How we build it)
 
-1.  **Extract:**
-    * Fetch all match/player data from **Understat** (reliable math).
-    * Fetch all lineup/action data from **ESPN** (reliable tactics).
-2.  **Transform:**
-    * Clean data types (convert strings to integers).
-    * Match ESPN rows to Understat rows using `Date` + `Team`.
-3.  **Load:**
-    * Insert Match -> Get ID.
-    * Insert Player Stats -> Link to Match ID.
-    * Insert Lineups -> Link to Match ID.
+## 5. Table: `news_headlines` (Headlines and Subheaders)
+*Source: As.com*
+*Description: Headlines and subheaders from each match.*
+
+| Column Name | Type | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `id` | SERIAL (PK) | Unique ID for this news item | `505` |
+| `match_id` | INT (FK) | Links to `matches.id` | `101` |
+| `headline` | TEXT | The main title of the article | `Bellingham conquista Bilbao` |
+| `subheader` | TEXT | The subtitle or lead paragraph | `El inglés marca en su debut...` |
+| `url` | TEXT | The direct link to the article | `https://as.com/...` |
+
+---
+
+## 6. ETL Logic (How we build it)
+
+1. **Extract:**
+* Fetch all match/player data from **Understat** (reliable math).
+* Fetch all lineup/action data from **ESPN** (reliable tactics).
+* Scrape match chronicles from **AS.com** (narrative context).
+
+
+2. **Transform:**
+* Clean data types (convert strings to integers).
+* Match ESPN rows to Understat rows using `Date` + `Team`.
+* Link AS.com headlines to Matches using `Team Names` + `Jornada` logic.
+
+
+3. **Load:**
+* Insert Match -> Get ID.
+* Insert Player Stats -> Link to Match ID.
+* Insert Lineups -> Link to Match ID.
+* Insert Headlines -> Link to Match ID.
