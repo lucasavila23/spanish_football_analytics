@@ -14,8 +14,9 @@ DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost")
 }
 
-# Words to ignore during matching to avoid "Real Betis" matching "Real Madrid"
-STOP_WORDS = {"real", "club", "deportivo", "sociedad", "athletic", "atletico", "fútbol", "futbol", "cf", "fc", "sad"}
+# 1. REMOVED "atletico" and "athletic" so they are treated as unique identifiers.
+# "Real" stays as a stop word because it is too generic (Real Madrid, Real Sociedad, Real Betis).
+STOP_WORDS = {"real", "club", "deportivo", "sociedad", "fútbol", "futbol", "cf", "fc", "sad"}
 
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
@@ -29,16 +30,22 @@ def get_unique_name_parts(team_name):
     """
     Splits a team name into parts but removes generic football words.
     'Real Betis' -> ['betis']
-    'Atletico Madrid' -> ['madrid']
+    'Atletico Madrid' -> ['atletico'] (Special rule applied below)
     'Real Madrid' -> ['madrid']
-    'FC Barcelona' -> ['barcelona']
     """
     clean_name = normalize(team_name)
     parts = clean_name.split()
+    
     # Filter out stop words AND short words (len < 3)
     unique_parts = [p for p in parts if p not in STOP_WORDS and len(p) > 2]
     
-    # If we filtered everything out (e.g. just "Real"), revert to original parts to be safe
+    # 2. CRITICAL FIX: Distinguish Atletico from Real Madrid
+    # If the team is "Atletico Madrid", we want to match on "atletico", NOT "madrid".
+    # Otherwise, "El Madrid gana" would match Atletico.
+    if 'atletico' in unique_parts and 'madrid' in unique_parts:
+        unique_parts.remove('madrid')
+
+    # If we filtered everything out, revert to original parts to be safe
     if not unique_parts:
         return [p for p in parts if len(p) > 2]
         
@@ -62,7 +69,6 @@ def find_match_id_by_names(matches, context_text, jornada):
     potential_matches = []
     
     for m in matches:
-        # Use the stricter name splitter
         home_parts = get_unique_name_parts(m['home_team'])
         away_parts = get_unique_name_parts(m['away_team'])
         
