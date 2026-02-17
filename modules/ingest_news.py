@@ -2,6 +2,7 @@ import psycopg2
 import os
 import argparse
 import unidecode
+import json
 from dotenv import load_dotenv
 from modules.news_scraper import scrape_as_headlines
 
@@ -14,9 +15,11 @@ DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost")
 }
 
-# 1. REMOVED "atletico" and "athletic" so they are treated as unique identifiers.
-# "Real" stays as a stop word because it is too generic (Real Madrid, Real Sociedad, Real Betis).
+# 1. STOP WORDS: Removed 'atletico' and 'athletic' so they count as unique names.
 STOP_WORDS = {"real", "club", "deportivo", "sociedad", "fútbol", "futbol", "cf", "fc", "sad"}
+
+# 2. CACHE CONFIGURATION
+CACHE_DIR = "data/cache"
 
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
@@ -36,16 +39,13 @@ def get_unique_name_parts(team_name):
     clean_name = normalize(team_name)
     parts = clean_name.split()
     
-    # Filter out stop words AND short words (len < 3)
     unique_parts = [p for p in parts if p not in STOP_WORDS and len(p) > 2]
     
-    # 2. CRITICAL FIX: Distinguish Atletico from Real Madrid
+    # CRITICAL FIX: Distinguish Atletico from Real Madrid
     # If the team is "Atletico Madrid", we want to match on "atletico", NOT "madrid".
-    # Otherwise, "El Madrid gana" would match Atletico.
     if 'atletico' in unique_parts and 'madrid' in unique_parts:
         unique_parts.remove('madrid')
 
-    # If we filtered everything out, revert to original parts to be safe
     if not unique_parts:
         return [p for p in parts if len(p) > 2]
         
@@ -72,9 +72,7 @@ def find_match_id_by_names(matches, context_text, jornada):
         home_parts = get_unique_name_parts(m['home_team'])
         away_parts = get_unique_name_parts(m['away_team'])
         
-        # Check if at least one unique part of the Home team is in the text
         home_found = any(p in clean_context for p in home_parts)
-        # Check if at least one unique part of the Away team is in the text
         away_found = any(p in clean_context for p in away_parts)
         
         if home_found and away_found:
@@ -96,16 +94,48 @@ def find_match_id_by_names(matches, context_text, jornada):
 
     return None
 
-def run_news_ingestion(season_year):
-    # 1. Scrape
-    news_items = scrape_as_headlines(season_year)
-    if not news_items: return
+def fetch_news_with_cache(season_year):
+    """
+    Checks for a local JSON file first. If missing, scrapes the web and saves it.
+    """
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    cache_path = os.path.join(CACHE_DIR, f"news_{season_year}.json")
 
-    # 2. Connect
+    # A. Try loading from Cache
+    if os.path.exists(cache_path):
+        print(f"\n[CACHE] Found saved news data: {cache_path}")
+        print("        Skipping web scraper (Load instant)...")
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[CACHE] Error reading cache: {e}. Re-scraping...")
+
+    # B. Scrape from Web
+    print(f"\n[WEB] Scraping AS.com for season {season_year} (This may take a minute)...")
+    news_items = scrape_as_headlines(season_year)
+    
+    # C. Save to Cache
+    if news_items:
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(news_items, f, indent=4, ensure_ascii=False)
+        print(f"[CACHE] Saved {len(news_items)} articles to {cache_path}")
+        
+    return news_items
+
+def run_news_ingestion(season_year):
+    # 1. Fetch Data (Cached or Fresh)
+    news_items = fetch_news_with_cache(season_year)
+    
+    if not news_items: 
+        print("No news items found.")
+        return
+
+    # 2. Connect to DB
     conn = get_db_connection()
     cur = conn.cursor()
     
-    print(f"\n Loading matches for season {season_year}...")
+    print(f" Loading matches for season {season_year}...")
     try:
         all_matches = get_season_matches(cur, season_year)
     except Exception as e:
@@ -113,7 +143,7 @@ def run_news_ingestion(season_year):
         return
 
     matches_linked = 0
-    print(f"   Processing {len(news_items)} articles...")
+    print(f" Processing {len(news_items)} articles for Database insertion...")
 
     for item in news_items:
         match_id = find_match_id_by_names(all_matches, item['context_teams'], item['jornada'])
