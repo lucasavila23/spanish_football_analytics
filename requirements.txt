@@ -73,3 +73,4 @@ websockets==16.0
 wheel==0.46.3
 wrapper-tls-requests==1.2.4
 wsproto==1.2.0
+unidecode==1.4.0
